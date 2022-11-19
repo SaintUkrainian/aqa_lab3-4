@@ -1,7 +1,6 @@
 package com.github.saintukrainian.aqa_lab3.api;
 
-import static com.github.saintukrainian.aqa_lab3.utils.TestConditions.DOCTORS_NAMES_ARE_JOSHUA;
-import static com.github.saintukrainian.aqa_lab3.utils.TestConditions.DOCTOR_NAME_IS_DENYS;
+import static com.github.saintukrainian.aqa_lab3.utils.TestConditions.SCHEDULES_FOR_PATIENT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.saintukrainian.aqa_lab3.config.ReplaceCamelCase;
-import com.github.saintukrainian.aqa_lab3.entity.Doctor;
+import com.github.saintukrainian.aqa_lab3.entity.DoctorSchedule;
+import com.github.saintukrainian.aqa_lab3.entity.Patient;
 import com.github.saintukrainian.aqa_lab3.model.DoctorRequest;
 import java.util.List;
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +27,9 @@ import org.springframework.test.web.servlet.MvcResult;
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayNameGeneration(ReplaceCamelCase.class)
-public class DoctorControllerTest {
+public class PatientControllerTest {
 
-  private static final String DOCTORS_PATH = "/doctors/";
+  private static final String PATIENTS_PATH = "/patients/";
 
   @Autowired
   private MockMvc mockMvc;
@@ -37,66 +38,49 @@ public class DoctorControllerTest {
   private ObjectMapper mapper;
 
   @Test
-  void shouldFetchAllDoctors() throws Exception {
-    // when
-    MvcResult mvcResult = performRequest(DOCTORS_PATH);
-
-    List<Doctor> doctors = mapper.readValue(mvcResult.getResponse().getContentAsString(),
-        List.class);
-
-    // then
-    assertThat(doctors)
-        .isNotEmpty()
-        .hasSize(2);
-  }
-
-  @Test
-  void shouldFetchDoctorById() throws Exception {
-    // when
-    MvcResult mvcResult = performRequest(DOCTORS_PATH + "1");
-    Doctor doctor = mapper.readValue(mvcResult.getResponse().getContentAsString(), Doctor.class);
-
-    // then
-    assertThat(doctor)
-        .isNotNull()
-        .hasNoNullFieldsOrProperties()
-        .has(DOCTOR_NAME_IS_DENYS);
-  }
-
-  @Test
-  void shouldFetchDoctorsByFirstName() throws Exception {
+  void shouldFetchSchedulesForSpecificPatient() throws Exception {
     // given
-    String requestedName = "Joshua";
-    DoctorRequest doctorRequest = DoctorRequest.builder()
-        .firstName(requestedName)
-        .build();
+    Long patientId = 1l;
 
     // when
-    MvcResult mvcResult = performRequest(DOCTORS_PATH, doctorRequest);
-    List<Doctor> doctorsByName = mapper.readValue(mvcResult.getResponse().getContentAsString(),
+    MvcResult mvcResult = performRequest(PATIENTS_PATH + patientId + "/schedules");
+    List<DoctorSchedule> schedules = mapper.readValue(mvcResult.getResponse().getContentAsString(),
         new TypeReference<>() {
         });
 
     // then
-    assertThat(doctorsByName)
+    assertThat(schedules)
         .isNotEmpty()
-        .has(DOCTORS_NAMES_ARE_JOSHUA);
+        .has(SCHEDULES_FOR_PATIENT);
   }
 
   @Test
-  void shouldThrowExceptionWhenFetchingByFirstName() throws Exception {
+  void shouldFetchEmptySchedulesForUnknownPatient() throws Exception {
     // given
-    String requestedName = "joshua";
-    DoctorRequest doctorRequest = DoctorRequest.builder()
-        .firstName(requestedName)
-        .build();
+    Long unknownPatientId = 999999l;
 
     // when
-    MvcResult mvcResult = performRequest(DOCTORS_PATH, doctorRequest);
+    MvcResult mvcResult = performRequest(PATIENTS_PATH + unknownPatientId + "/schedules");
+    List<DoctorSchedule> schedules = mapper.readValue(mvcResult.getResponse().getContentAsString(),
+        new TypeReference<>() {
+        });
 
     // then
-    assertThat(mvcResult.getResolvedException())
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThat(schedules).isEmpty();
+  }
+
+  @Test
+  void shouldFetchAllPatients() throws Exception {
+    // when
+    MvcResult mvcResult = performRequest(PATIENTS_PATH);
+    List<Patient> patients = mapper.readValue(mvcResult.getResponse().getContentAsString(),
+        new TypeReference<>() {
+        });
+
+    // then
+    assertThat(patients)
+        .isNotEmpty()
+        .hasSizeGreaterThan(1);
   }
 
   private MvcResult performRequest(String path) throws Exception {

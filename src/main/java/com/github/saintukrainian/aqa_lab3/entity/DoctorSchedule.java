@@ -36,6 +36,7 @@ public class DoctorSchedule {
   @Column(name = "time")
   private LocalDateTime time;
 
+  @Builder.Default
   @Column(name = "is_free")
   private boolean free = true;
 }
